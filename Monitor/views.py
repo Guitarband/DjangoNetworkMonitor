@@ -1,14 +1,57 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from scapy.all import sniff, Ether, IP, TCP, ARP, UDP
-from Monitor.models import Packet
+from Monitor.models import Packet, User
 import threading
+import datetime
+import json
 
 sniff_event = threading.Event()
 sniff_event.set()
 
 def app(request):
+    return render(request, 'index.html')
+
+def main(request):
     return render(request, 'monitor.html')
+
+def verify(request):
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        user = User.objects.filter(username=data.get('username'), storedHash=data.get('hashkey'))
+        if user:
+            return JsonResponse({"success": True, "message": "User authenticated"})
+        else:
+            return JsonResponse({"success": False, "message": "User not authenticated"})
+    except:
+        return JsonResponse({"success": False, "message": "Error authenticating user"})
+
+def register(request):
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        user = User.objects.filter(username=data.get('username'))
+        if not user:
+            newHash = hash(f"{data.get('username')}{data.get('password')}{datetime.datetime.now().strftime('%f')}")
+            user = User.objects.create(username=data.get('username'), password=data.get('password'), storedHash=f"{newHash}")
+            return JsonResponse({"success": True, "message": "User registered", "hashkey": user.storedHash})
+        else:
+            return JsonResponse({"success": False, "message": "Username is taken"})
+    except:
+        return JsonResponse({"success": False, "message": "Error creating user"})
+
+def login(request):
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        user = User.objects.get(username=data.get('username'))
+        if user and user.password == data.get('password'):
+            newHash = hash(f"{data.get('username')}{data.get('password')}{datetime.datetime.now().strftime('%f')}")
+            user.storedHash = f"{newHash}"
+            user.save()
+            return JsonResponse({"success": True, "message": "Login successful", "hashkey": user.storedHash})
+        else:
+            return JsonResponse({"success": False, "message": "Login failed"})
+    except:
+        return JsonResponse({"success": False, "message": "Error authenticating user"})
 
 def clear_monitor(request):
     Packet.objects.all().delete()
@@ -42,11 +85,10 @@ def monitor(request):
     return JsonResponse({"packets": packet_list})
 
 def start_sniff():
-    sniff(prn=packet_manager, store=0)
+    sniff(prn=packet_manager, store=0, stop_filter=lambda x: not sniff_event.is_set())
 
 def packet_manager(packet):
-    if sniff_event.is_set():
-        # https://stackoverflow.com/questions/19776807/scapy-how-to-check-packet-type-of-sniffed-packets
+    # https://stackoverflow.com/questions/19776807/scapy-how-to-check-packet-type-of-sniffed-packets
         if ARP in packet:
             Packet.objects.create(src = packet[ARP].psrc, dst = packet[ARP].pdst, proto="ARP")
         if IP in packet:
@@ -56,5 +98,3 @@ def packet_manager(packet):
                 Packet.objects.create(src = packet[IP].src, dst = packet[IP].dst, sport = packet[IP].sport, dport = packet[IP].dport, proto="UDP")
         else:
             Packet.objects.create(src = packet[Ether].src, dst = packet[Ether].dst, proto="Ethernet")
-    else:
-        pass

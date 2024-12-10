@@ -8,8 +8,35 @@ function App() {
     const [newPackets, setNewPackets] = useState(0);
     const [monitorEnabled, setMonitorEnabled] = useState(false);
     const [paused, setPaused] = useState(false);
+    const [access, setAccess] = useState(false);
 
-    useEffect(() => {        
+    useEffect(() => {
+        if(!access){
+            const username = localStorage.getItem('username');
+            const hashkey = localStorage.getItem('hashkey');
+            if (username && hashkey) {
+                fetch('/verify/', {
+                    method: 'POST',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ username: username, hashkey: hashkey })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success === true) {
+                        setAccess(true);
+                        console.log("data")
+                        
+                    } else{
+                        window.location.replace("/")
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+                }
+        }
+
         if(paused){
             return;
         }
