@@ -16,8 +16,81 @@
     border-radius: 5px;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
     text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
 }
 
 .stats div p{
     color: #2594dd;
+}
+
+.feed{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: auto;
+    text-align: center;
+    border: 1px solid black;
+}
+
+.feedTitle{
+    color: blue;
+    border: 1px solid #a0a0a0;
+}
+
+.feedData{
+    grid-column: span 5;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: auto;
+    text-align: center;
+}
+
+.feedData div{
+    border: 1px solid #a0a0a0;
+}
+
+#TCPFilter, #UDPFilter, #ARPFilter, #OtherFilter{
+    cursor: pointer;
+}
+
+button{
+    background-color: transparent;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    margin: 10px;
+    transition: background-color 0.3s, color 0.3s, border 0.3s;
+}
+
+#pauseButton{
+    color: #2594dd;
+    border: 1px solid #2594dd;
+}
+
+#pauseButton:hover{
+    background-color: #2594dd;
+    color: white;
+    border: 1px solid transparent;
+}
+
+#downloadButton{
+    color: #00f;
+    border: 1px solid #00f;
+}
+
+#downloadButton:hover{
+    background-color: #00f;
+    color: white;
+    border: 1px solid transparent;
+}
+
+#clearButton{
+    color: #f00;
+    border: 1px solid #f00;
+}
+
+#clearButton:hover{
+    background-color: #f00;
+    color: white;
+    border: 1px solid transparent;
 }

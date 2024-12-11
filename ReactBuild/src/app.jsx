@@ -7,8 +7,9 @@ function App() {
     const [packetCount, setPacketCount] = useState(0);
     const [newPackets, setNewPackets] = useState(0);
     const [monitorEnabled, setMonitorEnabled] = useState(false);
-    const [paused, setPaused] = useState(false);
+    const [paused, setPaused] = useState(true);
     const [access, setAccess] = useState(false);
+    const [packetFilter, setPacketFilter] = useState("any");
 
     useEffect(() => {
         if(!access){
@@ -48,10 +49,10 @@ function App() {
                 .catch(error => console.error('Error fetching packets:', error));
 
             if(packets.length > 0){
-                if(packets.length > packetCount){
+                if(packets.length > packetCount && packetCount > 10){
                     setNewPackets(packets.length - packetCount);
-                    setPacketCount(packets.length);
                 }
+                setPacketCount(packets.length);
                 setMonitorEnabled(true);
             }else{
                 setMonitorEnabled(false)
@@ -71,6 +72,44 @@ function App() {
                 setPaused(false);
             }, 5000);
         }
+        setPacketCount(0);
+    }
+
+    const handleFilterChange = ({filterType}) => {
+        console.log(packetFilter);
+        if(filterType !== packetFilter){
+            setPacketFilter(filterType);
+        } else{
+            setPacketFilter("any");
+        }
+    }
+
+    const handleDownload = () => {
+        if(packets.length > 0){
+            let packetData = {}
+            for(let i = 0; i < packets.length; i++){
+                if(packets[i].proto === packetFilter || packetFilter === "any"){
+                    packetData[`packet-${i+1}`] = {
+                        sourceIP: packets[i].src,
+                        sourcePort: packets[i].sport,
+                        destinationIP: packets[i].dst,
+                        destinationPort: packets[i].dport,
+                        protocol: packets[i].proto === "Ethernet" ? "Other" : packets[i].proto
+                    }
+                }
+            }
+
+            const element = document.createElement("a");
+            const file = new Blob([JSON.stringify(packetData)], {type: 'text/plain'});
+            element.href = URL.createObjectURL(file);
+            element.download = "packet_data.json";
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+        else{
+            alert("No data to download");
+        }
     }
 
     const handlePause = () => {
@@ -79,10 +118,10 @@ function App() {
     }
 
     const data = [
-        { name: 'TCP', value: packets.filter(packet => packet.proto === 'TCP').length + 1},
-        { name: 'UDP', value: packets.filter(packet => packet.proto === 'UDP').length + 1 },
-        { name: 'ARP', value: packets.filter(packet => packet.proto === 'ARP').length + 1 },
-        { name: 'Other', value: packets.filter(packet => packet.proto === 'Ethernet').length + 1}
+        { name: 'TCP', value: packets.filter(packet => packet.proto === 'TCP').length },
+        { name: 'UDP', value: packets.filter(packet => packet.proto === 'UDP').length  },
+        { name: 'ARP', value: packets.filter(packet => packet.proto === 'ARP').length },
+        { name: 'Other', value: packets.filter(packet => packet.proto === 'Ethernet').length }
     ]
 
     const colours = [
@@ -94,9 +133,14 @@ function App() {
 
     return (
         <div>
-            <h1>Monitor {monitorEnabled ? "Online" : "Offline"}</h1>
-            <button id="pauseButton" onClick={handlePause}>{paused ? "Unpause" : "Pause"} Monitor</button>
-            <button id="clearButton" onClick={handleClear}>Clear Data</button>
+            <div style={{display:'flex', justifyContent:"space-between", marginTop:'10px', marginLeft:"10px"}}>
+                <h1 style={{transform: 'translateY(-10px)'}}>Monitor {monitorEnabled ? "Online" : "Offline"}</h1>
+                <div>
+                    <button id="pauseButton" onClick={handlePause}>{paused ? "Start" : "Stop"} Monitor</button>
+                    <button id="downloadButton" onClick={handleDownload}>Download{packetFilter === "any" ? "" : packetFilter === "Ethernet" ? " Other" : ` ${packetFilter}`} Data</button>
+                    <button id="clearButton" onClick={handleClear}>Clear Data</button>
+                </div>
+            </div>
             <div className='stats'>
                 <div>
                     <h3>Packets per minute</h3>
@@ -106,19 +150,31 @@ function App() {
                     <h3>Total packets</h3>
                     <p>{monitorEnabled ? packetCount : 0}</p>
                 </div>
-                <div>
+                <div 
+                onClick={() => handleFilterChange({filterType: "TCP"})}
+                style={{ backgroundColor: packetFilter === "TCP" ? "#c4c4c4" : "" }}
+                    >
                     <h3>TCP packets</h3>
                     <p>{monitorEnabled ? packets.filter(packet => packet.proto === 'TCP').length : 0}</p>
                 </div>
-                <div>
+                <div 
+                onClick={() => handleFilterChange({filterType: "UDP"})}
+                style={{ backgroundColor: packetFilter === "UDP" ? "#c4c4c4" : "" }}
+                >
                     <h3>UDP packets</h3>
                     <p>{monitorEnabled ? packets.filter(packet => packet.proto === 'UDP').length : 0}</p>
                 </div>
-                <div>
+                <div 
+                onClick={() => handleFilterChange({filterType: "ARP"})}
+                style={{ backgroundColor: packetFilter === "ARP" ? "#c4c4c4" : "" }}
+                >
                     <h3>ARP packets</h3>
                     <p>{monitorEnabled ? packets.filter(packet => packet.proto === 'ARP').length : 0}</p>
                 </div>
-                <div>
+                <div 
+                onClick={() => handleFilterChange({filterType: "Ethernet"})}
+                style={{ backgroundColor: packetFilter === "Ethernet" ? "#c4c4c4" : "" }}
+                >
                     <h3>Other packets</h3>
                     <p>{monitorEnabled ? packets.filter(packet => packet.proto === 'Ethernet').length : 0}</p>
                 </div>
@@ -137,17 +193,28 @@ function App() {
                     </ResponsiveContainer>
                 </div>
             </div>
-            <ul>
+            <div className='feed'>
+                <div className='feedTitle'>SRC</div>
+                <div className='feedTitle'>SRC PORT</div>
+                <div className='feedTitle'>DST</div>
+                <div className='feedTitle'>DST PORT</div>
+                <div className='feedTitle'>Protocol</div>
                 {monitorEnabled ?
                     packets.slice().reverse().map((packet, index) => (
-                        <li key={index}>
-                            {packet.src} - {packet.sport} - {packet.dst} - {packet.dport} - {packet.proto}
-                        </li>
+                        (packet.proto === packetFilter || packetFilter === "any") ? 
+                            <div className='feedData' key={index}>
+                                <div className='srcIP'>{packet.src}</div>
+                                <div className='srcPORT'>{packet.sport}</div>
+                                <div className='dstIP'>{packet.dst}</div>
+                                <div className='dstPORT'>{packet.dport}</div>
+                                <div className='proto'>{packet.proto === "Ethernet" ? "Other" : packet.proto}</div>
+                            </div>
+                        : null
                     ))
                     :
                     "no items"
                 }
-            </ul>
+            </div>
         </div>
     );
 }

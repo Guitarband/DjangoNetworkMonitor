@@ -54,6 +54,7 @@ def login(request):
         return JsonResponse({"success": False, "message": "Error authenticating user"})
 
 def clear_monitor(request):
+    sniff_event.clear()
     Packet.objects.all().delete()
     return JsonResponse({"message": "Monitor cleared"})
 
@@ -85,7 +86,10 @@ def monitor(request):
     return JsonResponse({"packets": packet_list})
 
 def start_sniff():
-    sniff(prn=packet_manager, store=0, stop_filter=lambda x: not sniff_event.is_set())
+    sniff(prn=packet_manager, store=0, stop_filter=stop_filter)
+
+def stop_filter():
+    return not sniff_event.is_set()
 
 def packet_manager(packet):
     # https://stackoverflow.com/questions/19776807/scapy-how-to-check-packet-type-of-sniffed-packets
