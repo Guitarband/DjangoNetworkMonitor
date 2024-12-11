@@ -100,7 +100,7 @@ function App() {
             }
 
             const element = document.createElement("a");
-            const file = new Blob([JSON.stringify(packetData)], {type: 'text/plain'});
+            const file = new Blob([JSON.stringify(packetData, null, 2)], {type: 'application/json'});
             element.href = URL.createObjectURL(file);
             element.download = "packet_data.json";
             document.body.appendChild(element);
