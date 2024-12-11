@@ -57,12 +57,66 @@
             .catch(error => console.error('Error:', error));
         }
     </script>
+    <style>
+        .main{
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: top;
+            height: 100vh;
+        }
+
+        input{
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button{
+            background-color: transparent;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            margin: 10px;
+            transition: background-color 0.3s, color 0.3s, border 0.3s;
+        }
+
+        #login{
+            color: #008000;
+            border: 2px solid #008000;
+            cursor: pointer;
+        }
+
+        #login:hover{
+            background-color: #008000;
+            color: white;
+            border: 2px solid transparent;
+        }
+
+        #register{
+            color: #2986cc;
+            border: 2px solid #2986cc;
+            cursor: pointer;
+        }
+
+        #register:hover{
+            background-color: #2986cc;
+            color: white;
+            border: 2px solid transparent;
+        }
+    </style>
 </head>
 <body>
     <h1>Welcome</h1>
-    <input type="text" id="username" placeholder="Username">
-    <input type="password" id="password" placeholder="Password">
-    <button onclick="login()">Login</button>
-    <button onclick="register()">Register</button>
+    <div class="main">
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <div>
+            <button id="register" onclick="register()">Register</button>
+            <button id="login" onclick="login()">Login</button>
+        </div>
+    </div>
 </body>
 </html>
