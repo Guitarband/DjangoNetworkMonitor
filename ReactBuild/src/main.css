@@ -94,3 +94,11 @@ button{
     color: white;
     border: 1px solid transparent;
 }
+
+#Charts{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto;
+    grid-gap: 10px;
+    margin: 30px 10px;
+}

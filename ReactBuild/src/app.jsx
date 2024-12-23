@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './main.css'
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 
 function App() {
     const [packets, setPackets] = useState([]);
@@ -10,6 +10,7 @@ function App() {
     const [paused, setPaused] = useState(true);
     const [access, setAccess] = useState(false);
     const [packetFilter, setPacketFilter] = useState("any");
+    const [chartData, setChartData] = useState([]);
 
     useEffect(() => {
         if(!access){
@@ -42,23 +43,28 @@ function App() {
             return;
         }
 
-        setTimeout(() => {
+        const interval = setTimeout(() => {
             fetch('/monitor')
                 .then(response => response.json())
                 .then(data => setPackets(data.packets))
                 .catch(error => console.error('Error fetching packets:', error));
 
             if(packets.length > 0){
+                setNewPackets(0);
                 if(packets.length > packetCount && packetCount > 10){
                     setNewPackets(packets.length - packetCount);
                 }
                 setPacketCount(packets.length);
                 setMonitorEnabled(true);
+                createData();
             }else{
+                setNewPackets(0);
                 setMonitorEnabled(false)
             }
         }, 1000);
-    });
+
+        return () => clearTimeout(interval);
+    }, [packets, packetCount, paused, access]);
 
     const handleClear = () => {
         fetch('/clear_monitor');
@@ -117,12 +123,27 @@ function App() {
         fetch('/pause_monitor');
     }
 
-    const data = [
+    const pieData = [
         { name: 'TCP', value: packets.filter(packet => packet.proto === 'TCP').length },
         { name: 'UDP', value: packets.filter(packet => packet.proto === 'UDP').length  },
         { name: 'ARP', value: packets.filter(packet => packet.proto === 'ARP').length },
         { name: 'Other', value: packets.filter(packet => packet.proto === 'Ethernet').length }
     ]
+
+    const createData = () => {
+        const newData = {
+                time: new Date().toLocaleTimeString(),
+                newPackets: newPackets
+            }
+
+        setChartData(prevData => {
+            const updatedData = [...prevData, newData];
+            if(updatedData.length > 10){
+                updatedData.shift();
+            }
+            return updatedData;
+        });
+    }
 
     const colours = [
         '#0088FE',
@@ -179,13 +200,23 @@ function App() {
                     <p>{monitorEnabled ? packets.filter(packet => packet.proto === 'Ethernet').length : 0}</p>
                 </div>
             </div>
-            <div>
-                <div></div>
+            <div id='Charts'>
+                <div>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <AreaChart data={chartData} margin={{ top: 20, right: 0, left: 20, bottom: 50 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="time" interval={0} angle={-45} textAnchor='end' />
+                            <YAxis />
+                            <Tooltip />
+                            <Area type="monotone" dataKey="newPackets" stroke="#8884d8" fill="#8884d8" />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
                 <div>
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
-                            <Pie dataKey="value" isAnimationActive={true} data={data} cx="50%" cy="50%" innerRadius={40} outerRadius={80} fill="#8884d8" label >
-                                {data.map((entry, index) => (
+                            <Pie dataKey="value" isAnimationActive={true} data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={80} fill="#8884d8" label >
+                                {pieData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={colours[index % colours.length]} />
                                 ))}
                             </Pie>
